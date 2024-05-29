@@ -34,7 +34,7 @@ jobs:
 
     - name: Wait for SonarQube Quality Gate
       id: sonar
-      uses: sonarsource/sonarqube-quality-gate-action@v2
+      uses: sonarsource/sonarqube-quality-gate-action@master
       with:
         host-url: http://54.160.102.12:9000
         project-key: java-reachability-play_java-reachability-play
