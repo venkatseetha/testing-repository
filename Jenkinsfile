@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        REPO_URL = 'https://github.com/venkatseetha/testing-repository'  
+        REPO_URL = 'https://github.com/venkatseetha/testing-repository.git'  
         BRANCH_AGE_DAYS = 30  
     }
     
