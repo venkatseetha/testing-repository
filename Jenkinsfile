@@ -10,7 +10,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 // Clone the repository
-                git url: "${env.https://github.com/venkatseetha/testing-repository.git}", credentialsId: '4e2c98c7-eb96-4308-9609-6df5f1845e2b'
+                git url: "${env.REPO_URL}", credentialsId: '4e2c98c7-eb96-4308-9609-6df5f1845e2b'
             }
         }
         
