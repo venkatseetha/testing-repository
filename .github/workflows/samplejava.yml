@@ -42,6 +42,12 @@ jobs:
       with:
         name: build-artifacts
         path: ./build
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.IAM_ROLE }}
+        role-session-name: awsrolesession
+        aws-region: "us-east-1"    
 
    # - name: Wait for SonarQube Quality Gate
    #   id: sonar
@@ -50,9 +56,12 @@ jobs:
    #     host-url: http://54.160.102.12:9000
    #     project-key: java-reachability-play_java-reachability-play
    #    auth-token: ${{ secrets.SONAR_TOKEN }}
+    - name: Upload build artifacts to S3
+      run: |
+        aws s3 cp /home/runner/work/testing-repository/testing-repository/build/*.jar s3://javabucket12121/
 
-    - name: Deploy application
+    - name: Deploy application to AWS CodeDeploy
       if: steps.sonar.outputs.status == 'passed'
       run: |
-        echo "Deploying the application..."
-        # Add your deployment commands here
+        aws deploy create-deployment --application-name javaapp --deployment-group-name my-dep-grp --s3-location bucket=javabucket12121,bundleType=zip,key=wffwebappdemo.jar
+
