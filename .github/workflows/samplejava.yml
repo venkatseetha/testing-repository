@@ -51,13 +51,13 @@ jobs:
         role-session-name: awsrolesession
         aws-region: "us-east-1"    
 
-   # - name: Wait for SonarQube Quality Gate
-   #   id: sonar
-   #   uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-   #   with:
-   #     host-url: http://54.160.102.12:9000
-   #     project-key: java-reachability-play_java-reachability-play
-   #    auth-token: ${{ secrets.SONAR_TOKEN }}
+    - name: Wait for SonarQube Quality Gate
+      id: sonar
+      uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+      with:
+        host-url: http://54.160.102.12:9000
+        project-key: java-reachability-play_java-reachability-play
+        auth-token: ${{ secrets.SONAR_TOKEN }}
     - name: Upload build artifacts to S3
       run: |
         aws s3 cp /home/runner/work/testing-repository/testing-repository/build/*.jar s3://javabucket12121/
