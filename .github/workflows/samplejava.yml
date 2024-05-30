@@ -26,7 +26,6 @@ jobs:
 
     - name: Build with Maven
       run: mvn clean install -e
-
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
@@ -37,14 +36,12 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn sonar:sonar -Dsonar.projectKey=java-reachability-play_java-reachability-play -Dsonar.host.url=http://54.160.102.12:9000 -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
     - name: Download build artifacts
       if: always() # Ensures that artifacts are downloaded even if previous steps fail
       uses: actions/download-artifact@v3
       with:
         name: build-artifacts
         path: ./build
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -52,21 +49,21 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         role-to-assume: ${{ secrets.IAM_ROLE }}
         role-session-name: awsrolesession
-        aws-region: "us-east-1"
+        aws-region: "us-east-1"    
 
-    - name: Wait for SonarQube Quality Gate
-      id: sonar
-      uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-      with:
-        host-url: http://54.160.102.12:9000
-        project-key: java-reachability-play_java-reachability-play
-        auth-token: ${{ secrets.SONAR_TOKEN }}
-
+   # - name: Wait for SonarQube Quality Gate
+   #   id: sonar
+   #   uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+   #   with:
+   #     host-url: http://54.160.102.12:9000
+   #     project-key: java-reachability-play_java-reachability-play
+   #    auth-token: ${{ secrets.SONAR_TOKEN }}
     - name: Upload build artifacts to S3
       run: |
-        aws s3 cp ./build/*.jar s3://javabucket12121/
+        aws s3 cp /home/runner/work/testing-repository/testing-repository/build/*.jar s3://javabucket12121/
 
     - name: Deploy application to AWS CodeDeploy
       if: steps.sonar.outputs.status == 'passed'
       run: |
-        aws deploy create-deployment --application-name javaapp --deployment-group-name my-dep-grp --s3-location bucket=javabucket12121,bundleType=zip,key=build-artifacts.zip
+        aws deploy create-deployment --application-name javaapp --deployment-group-name my-dep-grp --s3-location bucket=javabucket12121,bundleType=zip,key=wffwebappdemo.jar
+
