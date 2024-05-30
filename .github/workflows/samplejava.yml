@@ -62,6 +62,10 @@ jobs:
       run: |
         # Use the captured path of the JAR file
         aws s3 cp ${{ env.JAR_FILE_PATH }} s3://javabucket12121/
+      env:
+        AWS_DEFAULT_REGION: us-east-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Deploy application to AWS CodeDeploy
       if: steps.sonar.outputs.status == 'passed'
