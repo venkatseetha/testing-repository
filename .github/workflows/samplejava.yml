@@ -25,37 +25,23 @@ jobs:
         java-version: '17'
 
     - name: Build with Maven
-      id: build
-      run: |
-        mvn clean install -e
-        # Capture the path of the built JAR file
-        JAR_FILE_PATH=$(find target -name "*.jar" | head -n 1)
-        echo "JAR_FILE_PATH=$JAR_FILE_PATH" >> $GITHUB_ENV
-        echo "JAR_FILE_PATH is $JAR_FILE_PATH"
-
+      run: mvn clean install -e
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: build-artifacts
-        path: ${{ env.JAR_FILE_PATH }}
+        path: target/*.jar
 
     - name: SonarQube Scan
-      id: sonarscan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: |
-        mvn sonar:sonar \
-          -Dsonar.projectKey=java-reachability-play_java-reachability-play \
-          -Dsonar.host.url=http://54.160.102.12:9000 \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
+      run: mvn sonar:sonar -Dsonar.projectKey=java-reachability-play_java-reachability-play -Dsonar.host.url=http://54.160.102.12:9000 -Dsonar.login=${{ secrets.SONAR_TOKEN }}
     - name: Download build artifacts
-      if: always()
+      if: always() # Ensures that artifacts are downloaded even if previous steps fail
       uses: actions/download-artifact@v3
       with:
         name: build-artifacts
         path: ./build
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -63,25 +49,21 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         role-to-assume: ${{ secrets.IAM_ROLE }}
         role-session-name: awsrolesession
-        aws-region: "us-east-1"
+        aws-region: "us-east-1"    
 
-    - name: Debug AWS Credentials
-      run: |
-        aws sts get-caller-identity
-
+   # - name: Wait for SonarQube Quality Gate
+   #   id: sonar
+   #   uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+   #   with:
+   #     host-url: http://54.160.102.12:9000
+   #     project-key: java-reachability-play_java-reachability-play
+   #    auth-token: ${{ secrets.SONAR_TOKEN }}
     - name: Upload build artifacts to S3
       run: |
-        echo "Uploading ${{ env.JAR_FILE_PATH }} to S3"
-        aws s3 cp ${{ env.JAR_FILE_PATH }} s3://javabucket12121/$(basename ${{ env.JAR_FILE_PATH }})
-      env:
-        AWS_DEFAULT_REGION: us-east-1
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws s3 cp /home/runner/work/testing-repository/testing-repository/build/*.jar s3://javabucket12121/
 
     - name: Deploy application to AWS CodeDeploy
-      if: success() && steps.sonarscan.outcome == 'success'
+      if: steps.sonar.outputs.status == 'passed'
       run: |
-        aws deploy create-deployment \
-          --application-name javaapp \
-          --deployment-group-name my-dep-grp \
-          --s3-location bucket=javabucket12121,bundleType=zip,key=$(basename ${{ env.JAR_FILE_PATH }})
+        aws deploy create-deployment --application-name javaapp --deployment-group-name my-dep-grp --s3-location bucket=javabucket12121,bundleType=zip,key=wffwebappdemo.jar
+
