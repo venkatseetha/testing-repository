@@ -1,0 +1,119 @@
+provider "aws" {
+  region = "us-east-1"  # Change the region as needed
+}
+
+# Create a VPC
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "main_vpc"
+  }
+}
+
+# Create a public subnet
+resource "aws_subnet" "public" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "public_subnet"
+  }
+}
+
+# Create an internet gateway
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "main_igw"
+  }
+}
+
+# Create a custom route table
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.gw.id
+  }
+
+  tags = {
+    Name = "public_rt"
+  }
+}
+
+# Associate the route table with the public subnet
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# Create a security group
+resource "aws_security_group" "allow_http" {
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "allow_http_sg"
+  }
+}
+
+# Create a key pair
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer-key"
+  public_key = tls_private_key.example.public_key_openssh
+}
+
+resource "local_file" "private_key" {
+  content  = tls_private_key.example.private_key_pem
+  filename = "${path.module}/deployer-key.pem"
+  file_permission = "0600"
+}
+
+# Create an EC2 instance
+resource "aws_instance" "web_server" {
+  ami           = "ami-0e001c9271cf7f3b9"  # Change to your preferred AMI
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.public.id
+  key_name      = aws_key_pair.deployer.key_name
+  vpc_security_group_ids = [aws_security_group.allow_http.id]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y nginx
+              systemctl start nginx
+              systemctl enable nginx
+            EOF
+
+  tags = {
+    Name = "web_server"
+  }
+}
